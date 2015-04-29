@@ -1,0 +1,39 @@
+<!-- Title: environments.html.erb-->
+<!-- Page to display the status of all envs in a region -->
+<!-- Author: RH -->
+
+<div class="container">
+
+
+
+   <div class="row text-center">
+      <h3>Deployed Environments - {{navigator.currentRegion.toUpperCase()}}</h3>
+   </div>
+
+
+   <div class="row">
+      <div class="col-md-3"></div>
+      <div class="col-md-6">
+         <table class="table table-striped table-bordered">
+            <tr>
+               <th class="text-center">Environment</th>
+               <th class="text-center">Status</th>
+               <th class="text-center">Start</th>
+               <th class="text-center">Stop</th>
+            </tr>
+            <tr ng-repeat="(env, status) in  navigator.envsStatus">
+               <td class="text-center">
+                  <!-- Go to common-shard view on an environment selection -->
+                  <a ng-click="navigator.updateShard('common', env)">{{env}}</a>
+               </td>
+               <td class="text-center">{{status}}</td>
+               <td>
+                  <a class="btn btn-primary startEnvBtn" ng-disabled="status == 'Running'" ng-click="navigator.startEnv(env)">Start Environment</a></td>
+               <td>
+                  <a class="btn btn-primary stopEnvBtn" ng-disabled="status == 'Suspended'" ng-click="navigator.stopEnv(env)">Stop Environment</a></td>
+            </tr>
+         </table>
+      </div>
+      <div class="col-md-3"></div>
+   </div>
+</div>

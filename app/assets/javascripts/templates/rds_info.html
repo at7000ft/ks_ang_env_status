@@ -1,0 +1,28 @@
+<!-- Title: _rds_info.html.erb -->
+<!-- Partial page to display the RDS info -->
+<!-- Author: RH -->
+<div ng-show="!navigator.hasRdsInfo()">
+   <h4><em>{{navigator.rdsType}} RDS Instance Not Found</em></h4>
+</div>
+<div ng-show="navigator.hasRdsInfo()">
+   <h4><em>{{navigator.rdsType}} RDS:</em></h4>
+   <table class="table table-striped table-bordered" id="rds">
+      <tr ng-repeat="(key, value) in  navigator.shardInfo.rds_info">
+         <td>{{key}}</td>
+         <td>{{value == null ? 'N/A' : value}}</td>
+      </tr>
+   </table>
+</div>
+
+<div ng-show="!navigator.hasRdsRepInfo()">
+   <h4><em>{{navigator.rdsType}} RDS Replica Instance Not Found</em></h4>
+</div>
+<div ng-show="navigator.hasRdsRepInfo()">
+   <h4><em>{{navigator.rdsType}} RDS Replica:</em></h4>
+   <table class="table table-striped table-bordered">
+      <tr ng-repeat="(key, value) in  navigator.shardInfo.rds_rep_info">
+         <td>{{key}}</td>
+         <td>{{value == null ? 'N/A' : value}}</td>
+      </tr>
+   </table>
+</div>

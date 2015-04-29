@@ -1,0 +1,11 @@
+<%# Title: index.html.erb %>
+<%# Rails Main page %>
+<%# Angular templates show in the div area based on selected shard   %>
+<%# Author: RH %>
+
+<!-- One of four main views displayed based on Angular navigation-controller shard model value -->
+<div ng-show="navigator.isSelectedShard('all')" ng-include="'environments.html'"></div>
+<div ng-show="navigator.isSelectedShard('common')" ng-include="'common-shard.html'"></div>
+<div ng-show="navigator.isSelectedShard('nagift')" ng-include="'gift-shard.html'"></div>
+<div ng-show="navigator.isSelectedShard('igift')" ng-include="'gift-shard.html'"></div>
+<div ng-show="navigator.isSelectedShard('cloop')" ng-include="'gift-shard.html'"></div>

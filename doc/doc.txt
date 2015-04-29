@@ -1,0 +1,9 @@
+#
+#
+http://start.jcolemorrison.com/setting-up-an-angularjs-and-rails-4-1-project/
+
+#
+#Install/update JS/CSS (will install in vendor/assets/bower_components)
+rake bower:install
+#OR
+rake bower:update

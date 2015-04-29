@@ -1,0 +1,16 @@
+<!-- Title: common-shard.html-->
+<!-- Page to display the status of env shard in a region -->
+<!-- Author: RH -->
+<div class="container">
+   <div class="row">
+      <div class="col-md-1"></div>
+      <div class="col-md-10">
+         <div ng-include="'shard-buttons.html'"></div>
+         <h2>Common - {{navigator.currentEnvironment}}</h2>
+         <div ng-include="'rds_info.html'"></div>
+         <div ng-include="'ec2_info.html'"></div>
+         <div ng-include="'url_info.html'"></div>
+      </div>
+      <div class="col-md-1"></div>
+   </div>
+</div>

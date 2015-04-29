@@ -1,0 +1,25 @@
+<!-- Title: url_info.html -->
+<!-- Partial page to display the URL info -->
+<!-- Author: RH -->
+<div>
+   <h4><em>URLs:</em></h4>
+   <table class="table table-striped table-bordered">
+      <tr>
+         <td>Services GW ELB URL</td>
+         <td>{{navigator.shardInfo['servicesGwElbUrlHttp'] == null ? 'N/A' : navigator.shardInfo['servicesGwElbUrlHttp']}}</td>
+      </tr>
+      <tr>
+         <td>Portal GW ELB URL</td>
+         <td>{{navigator.shardInfo['portalGwElbUrlHttp'] == null ? 'N/A' : navigator.shardInfo['portalGwElbUrlHttp']}}</td>
+      </tr>
+      <tr>
+         <td>Portal ELB URL</td>
+         <td>{{navigator.shardInfo['portalElbUrlHttp'] == null ? 'N/A' : navigator.shardInfo['portalElbUrlHttp']}}</td>
+      </tr>
+      <tr>
+         <td>Logstash ELB URL</td>
+         <td>{{navigator.shardInfo['logstashElbUrlHttp'] == null ? 'N/A' : navigator.shardInfo['logstashElbUrlHttp']}}</td>
+      </tr>
+   </table>
+</div>
+

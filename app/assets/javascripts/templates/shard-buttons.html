@@ -1,0 +1,12 @@
+<!-- Title: shard_buttons.html-->
+<!-- Page to display the shard buttons -->
+<!-- Author: RH -->
+<div class="btn-group" role="group">
+   <!-- If the value of tab is 1 add the active class to this li component -->
+   <button ng-click="navigator.updateShard('common', navigator.currentEnvironment)" type="button" class="btn btn-sm btn-primary">Common
+   </button>
+   <button ng-click="navigator.updateShard('nagift', navigator.currentEnvironment)" type="button" class="btn btn-sm btn-primary">NAGift
+   </button>
+   <button ng-click="navigator.updateShard('igift', navigator.currentEnvironment)" type="button" class="btn btn-sm btn-primary">IGift</button>
+   <button ng-click="navigator.updateShard('cloop', navigator.currentEnvironment)" type="button" class="btn btn-sm btn-primary">CLoop</button>
+</div>

@@ -1,0 +1,69 @@
+<%# Title: application.html.erb %>
+<%# Rails Main layout page %>
+<%# When this page is loaded in the browser the ng-app annotation will auto-start the Angular application 'KeystoneEnvStatus' %>
+<%# defined in app/assets/javascripts/ng-app/app.js (all files in app/asserts/javascripts are auto loaded by the asset pipeline in layouts/application.html.erb %>
+<%# Angular templates are loaded into the ng-view area (in index.html.erb) based on selected url by the angular routing module setup in app.js %>
+<%# Author: RH %>
+
+<!DOCTYPE html>
+<html ng-app="KeystoneEnvStatus">
+<head>
+    <title>KeystoneEnvStatus</title>
+    <%= stylesheet_link_tag 'application', media: 'all', 'data-turbolinks-track' => true %>
+    <%= javascript_include_tag 'application', 'data-turbolinks-track' => true %>
+    <%= csrf_meta_tags %>
+    <base href="/">
+</head>
+<body ng-controller="NavController as navigator">
+<%# Navbar  %>
+<nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+    <div class="container">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" ng-click="navigator.shard = 'all'">Keystone Environment Status</a>
+        </div>
+        <div id="navbar" class="collapse navbar-collapse">
+            <ul class="nav navbar-nav">
+                <li><a ng-click="navigator.shard = 'all'">Environments</a></li>
+                <li><a ng-click="navigator.flushCaches()">Flush Caches</a></li>
+                <li class="dropdown">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">Region
+                        <span class="caret"></span></a>
+                    <ul class="dropdown-menu" role="menu" aria-labelledby="dropdownMenu1">
+                        <li role="presentation" ng-repeat="regionArray in navigator.regions">
+                            <a name="dropdown-item" ng-click="navigator.updateForRegion(regionArray[1])">{{regionArray[0]}}</a>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+        <!--/.nav-collapse -->
+    </div>
+    <!--<div cg-busy="navigator.httpPromise"></div>-->
+    <!-- Busy dialog that waits on http promise to detect message completion -->
+    <div cg-busy="{promise:navigator.httpPromise, message: 'Please wait, accessing AWS...', backdrop:true,templateUrl:'waitDialog.html',delay:300,minDuration:500}"></div>
+</nav>
+<!-- Error message div, only shows if errorMessage var is not empty -->
+<div class="classWithPad text-center">
+    <div class="alert alert-warning"  ng-if="navigator.errorMessage.length > 0">
+        <a href="#" class="close" data-dismiss="alert">&times;</a>
+        <p><strong>Error - &nbsp&nbsp</strong> {{navigator.errorMessage}}</p>
+    </div>
+</div>
+
+<!-- index.html.erb contents is inserted here -->
+<%= yield %>
+
+<%# Footer  %>
+<footer class="footer">
+    <div class="container">
+        <p class="text-muted text-center">2015 RLL {{navigator.version}}</p>
+    </div>
+</footer>
+</body>
+</html>

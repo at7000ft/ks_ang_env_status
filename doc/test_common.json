@@ -1,0 +1,65 @@
+{
+  "rds_info": {
+    "Endpoint": "keystone-log-common-qa-r.cmbg1chil2vy.us-west-2.rds.amazonaws.com",
+    "InstanceClass": "db.m3.large",
+    "Status": "available",
+    "AvailabilityZone": "us-west-2b",
+    "SecondaryAvailabilityZone": null,
+    "MultiAz": false,
+    "Storage": 100,
+    "Iops": null
+  },
+  "portalGwElbUrlHttp": "http://internal-KSPortalGwyELB-QA-R-Common-356690855.us-west-2.elb.amazonaws.com",
+  "portalElbUrlHttp": "http://internal-KSPortalELB-QA-R-Common-1758738023.us-west-2.elb.amazonaws.com",
+  "servicesGwElbUrlHttp": "http://KSServicesSGWELB-QA-R-Common-1118630312.us-west-2.elb.amazonaws.com",
+  "ec2_info": {
+    "Portal Gateway": [
+      {
+        "IPAddress": "10.182.202.25",
+        "AmiId": "ami-514f0c61",
+        "InstanceType": "m3.medium",
+        "AvailablityZone": "us-west-2a",
+        "InstanceId": "i-094a3305",
+        "State": "running",
+        "AsgHealthStatus": "Healthy",
+        "AsgLifecycleState": "InService"
+      }
+    ],
+    "Portal": [
+      {
+        "IPAddress": "10.182.202.26",
+        "AmiId": "ami-c32c75f3",
+        "InstanceType": "m3.medium",
+        "AvailablityZone": "us-west-2a",
+        "InstanceId": "i-46afd64a",
+        "State": "running",
+        "AsgHealthStatus": "Healthy",
+        "AsgLifecycleState": "InService"
+      }
+    ],
+    "Logstash": [
+      {
+        "IPAddress": "10.182.202.229",
+        "AmiId": "ami-09286439",
+        "InstanceType": "m1.medium",
+        "AvailablityZone": "us-west-2a",
+        "InstanceId": "i-2b69ee27",
+        "State": "running",
+        "AsgHealthStatus": "Healthy",
+        "AsgLifecycleState": "InService"
+      }
+    ],
+    "Services SGW": [
+      {
+        "IPAddress": "10.182.1.253",
+        "AmiId": "ami-db97d9eb",
+        "InstanceType": "m3.medium",
+        "AvailablityZone": "us-west-2a",
+        "InstanceId": "i-4b4b3247",
+        "State": "running",
+        "AsgHealthStatus": "Healthy",
+        "AsgLifecycleState": "InService"
+      }
+    ]
+  }
+}

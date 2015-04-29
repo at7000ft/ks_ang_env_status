@@ -1,0 +1,120 @@
+{
+  "ec2_info": {
+    "Services": [
+      {
+        "IPAddress": "10.182.205.105",
+        "AmiId": "ami-21693a11",
+        "InstanceType": "c3.2xlarge",
+        "AvailablityZone": "us-west-2b",
+        "InstanceId": "i-21dbf62b",
+        "State": "running",
+        "AsgHealthStatus": "Healthy",
+        "AsgLifecycleState": "InService"
+      },
+      {
+        "IPAddress": "10.182.204.244",
+        "AmiId": "ami-21693a11",
+        "InstanceType": "c3.2xlarge",
+        "AvailablityZone": "us-west-2a",
+        "InstanceId": "i-c3275ccf",
+        "State": "running",
+        "AsgHealthStatus": "Healthy",
+        "AsgLifecycleState": "InService"
+      }
+    ],
+    "Kernel1": [
+      {
+        "IPAddress": "10.182.204.108",
+        "IPAddress(2)": "10.182.200.231",
+        "AmiId": "ami-4d6c3f7d",
+        "InstanceType": "c3.2xlarge",
+        "AvailablityZone": "us-west-2a",
+        "InstanceId": "i-160f741a",
+        "State": "running",
+        "AsgHealthStatus": "Healthy",
+        "AsgLifecycleState": "InService"
+      }
+    ],
+    "Kernel2": [
+      {
+        "IPAddress": "10.182.204.40",
+        "IPAddress(2)": "10.182.200.241",
+        "AmiId": "ami-4d6c3f7d",
+        "InstanceType": "c3.2xlarge",
+        "AvailablityZone": "us-west-2a",
+        "InstanceId": "i-d30e75df",
+        "State": "running",
+        "AsgHealthStatus": "Healthy",
+        "AsgLifecycleState": "InService"
+      }
+    ],
+    "Kernel3": [
+      {
+        "IPAddress": "10.182.205.64",
+        "IPAddress(2)": "10.182.201.231",
+        "AmiId": "ami-4d6c3f7d",
+        "InstanceType": "c3.2xlarge",
+        "AvailablityZone": "us-west-2b",
+        "InstanceId": "i-e9a68be3",
+        "State": "running",
+        "AsgHealthStatus": "Healthy",
+        "AsgLifecycleState": "InService"
+      }
+    ],
+    "Kernel4": [{"IPAddress": "Not Found"}],
+    "Batch": [
+      {
+        "IPAddress": "10.182.205.149",
+        "IPAddress(2)": "10.182.201.101",
+        "AmiId": "ami-2592c115",
+        "InstanceType": "c3.2xlarge",
+        "AvailablityZone": "us-west-2b",
+        "InstanceId": "i-85d8f58f",
+        "State": "running",
+        "AsgHealthStatus": "Healthy",
+        "AsgLifecycleState": "InService"
+      },
+      {
+        "IPAddress": "10.182.204.44",
+        "IPAddress(2)": "10.182.200.101",
+        "AmiId": "ami-2592c115",
+        "InstanceType": "c3.2xlarge",
+        "AvailablityZone": "us-west-2a",
+        "InstanceId": "i-d8205bd4",
+        "State": "running",
+        "AsgHealthStatus": "Healthy",
+        "AsgLifecycleState": "InService"
+      }
+    ],
+    "Bastion": [{"IPAddress": "Not Found"}]
+  },
+  "s3_bucket_name": "keystone-2-bi-nagift-s3-keystones3bucket-1lypjb51f6l24",
+  "rds_info": {
+    "Endpoint": "keystone-nagift-bi.cmbg1chil2vy.us-west-2.rds.amazonaws.com",
+    "InstanceClass": "db.m3.2xlarge",
+    "Status": "available",
+    "AvailabilityZone": "us-west-2a",
+    "SecondaryAvailabilityZone": "us-west-2b",
+    "MultiAz": true,
+    "Storage": 1000,
+    "Iops": 3000,
+    "Database Access:": "",
+    "Export": "export MYSQL_PWD=bhnuser_nagift",
+    "MySql Client": "mysql --host=keystone-nagift-bi.cmbg1chil2vy.us-west-2.rds.amazonaws.com --port=3306 --user=bhnuser --database=keystone_db",
+    "Admin Addess": "keystone_admin/kys_admin_nagift"
+  },
+  "rds_rep_info": {
+    "Endpoint": "keystone-nagift-rep-bi.cmbg1chil2vy.us-west-2.rds.amazonaws.com",
+    "InstanceClass": "db.m3.2xlarge",
+    "Status": "available",
+    "AvailabilityZone": "us-west-2b",
+    "SecondaryAvailabilityZone": null,
+    "MultiAz": false,
+    "Storage": 1000,
+    "Iops": null,
+    "Database Access:": "",
+    "Export": "export MYSQL_PWD=bhnuser_nagift",
+    "MySql Client": "mysql --host=keystone-nagift-rep-bi.cmbg1chil2vy.us-west-2.rds.amazonaws.com --port=3306 --user=bhnuser --database=keystone_db",
+    "Admin Addess": "keystone_admin/kys_admin_nagift"
+  }
+}

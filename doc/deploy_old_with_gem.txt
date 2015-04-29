@@ -1,0 +1,41 @@
+#
+# Run rails app from command line (starts WEBrick web server)
+rails server
+#OR
+rails server&
+#OR
+rails s > rails_output.txt 2>&1 &
+
+#
+# Copy projects zips to maint server
+scp -i ~/.ssh/devKey.pem ks_aws_util.zip ubuntu@10.182.202.79:~/ksawsutil
+
+# On maint server
+cd ksawsutil
+unzip ks_aws_util.zip
+cd ks_aws_util
+gem build ks_aws_util.gemspec
+gem install ks_aws_util-0.0.5.gem
+
+#
+# Copy projects zips to maint server
+scp -i ~/.ssh/devKey.pem ks_ang_env_status.zip ubuntu@10.182.202.79:~/ksangenvstatus
+
+# Run maint server, in cloud cannot run on localhost, must set server host to 0.0.0.0 (or actual host ip)
+cd ksangenvstatus
+unzip ks_ang_env_status.zip
+cd ks_ang_env_status
+#After killing current rails process
+rails s -b 0.0.0.0 > rails_output.txt 2>&1 &
+
+#
+# View at
+http://10.182.202.79:3000
+
+
+#
+#View running processes
+>jobs
+
+
+

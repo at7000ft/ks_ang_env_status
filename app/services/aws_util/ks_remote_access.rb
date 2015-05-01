@@ -1,23 +1,21 @@
-require 'net/ssh'
-
 #
-# Title: KsRemAccess
-# Description:
+# Title: KsRemoteAccess
+# Description: 
 #
-# Author: rholl00
+# Author: rholl00 
 # Date: 3/18/15
 #
 # gem install aws-sdk -v 1.42.0
 # gem install net-ssh
+require 'net/ssh'
 
-class KsRemAccess
+class KsRemoteAccess
 
-  def initialize(host, user = 'ubuntu',absoluteKeyPath)
+  def initialize(host, user = 'ubuntu')
     @host = host
     @user = user
     #Load absolute path to key file (works with different project install locations)
-    #@sshKeyPath = File.expand_path("../../keys/devKey.pem", File.dirname(__FILE__))
-    @sshKeyPath = absoluteKeyPath
+    @sshKeyPath = File.expand_path("../../../keys/devKey.pem", File.dirname(__FILE__))
     #puts "keyPath - #{@sshKeyPath}"
   end
 
@@ -44,7 +42,7 @@ class KsRemAccess
       end
       session.close
     rescue Exception => e
-      #puts "\ngetRemoteVersionFileNames: Processing error occured - #{e.message}\n"
+      puts "\ngetRemoteVersionFileNames: Processing error occured - #{e.message}\n"
       versions = ['Not found']
     end
     versions
@@ -52,9 +50,7 @@ class KsRemAccess
 end
 
 if __FILE__==$0
-  #Need a path to devKey.pem to run from here
-  addr =  '10.182.200.119'
-  absKeyPath = "/Users/rholl00/eclipseworkspaces/bhnetwork/ks_ang_env_status/keys/devKey.pem"
-  rem = KsRemAccess.new(addr,absKeyPath)
+  addr =  '10.182.203.39'
+  rem = KsRemoteAccess.new(addr)
   puts "Versions for addr #{addr} - #{rem.getRemoteVersionFileNames('/var/tmp')}"
 end

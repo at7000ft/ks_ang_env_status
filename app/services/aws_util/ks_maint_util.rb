@@ -3,13 +3,17 @@ require_relative './ks_rds_util'
 require_relative './ks_asg_util'
 require_relative './ks_cf_util'
 require_relative './stack_build_params'
-require_relative './ks_rem_access'
+require_relative './ks_remote_access'
+require_relative 'ks_common'
 
 #
 # A utility class with convenience methods for AWS service access with knowledge of Keystone CF stacks and
 # components.
 #
 class KSMaintUtil
+
+  include KSCommon
+
   # CF Logical ids and output key names of Keystone CF components
   PORTAL_GW_ASG_LOGICAL_ID = "PortalGatewayAutoScalingGroup"
   PORTAL_ASG_LOGICAL_ID = "PortalAutoScalingGroup"
@@ -86,6 +90,8 @@ class KSMaintUtil
         env = stk.split('keystone-2-').last.partition('-igift').first
       elsif stk.include? '-cloop-'
         env = stk.split('keystone-2-').last.partition('-cloop').first
+      elsif stk.include? '-bes-'
+        env = stk.split('keystone-2-').last.partition('-bes').first
       else
         puts "getDeployedEnvs: Error: keystone-2- not found in stack name #{stack}"
       end
@@ -211,7 +217,7 @@ class KSMaintUtil
 
 
   def suspendAsg(stackSuffix, asgLogicalId)
-    stackname = KSCfUtil.getStackname(@stackParams, stackSuffix, nil)
+    stackname = getStackname(@stackParams, stackSuffix, nil)
     asgPhyId = @cfUtil.getStackResource(stackname, asgLogicalId, nil)
     if asgPhyId.nil?
       puts "ASG #{asgLogicalId} not found in stack #{stackname}"
@@ -226,7 +232,7 @@ class KSMaintUtil
   # After resume wait for removal of terminated instances then for creation of new instances.
   #
   def resumeAsg(stackSuffix, asgLogicalId)
-    stackname = KSCfUtil.getStackname(@stackParams, stackSuffix, nil)
+    stackname = getStackname(@stackParams, stackSuffix, nil)
     puts "\nResuming ASG #{asgLogicalId} in stack #{stackname}  "
     asgPhyId = @cfUtil.getStackResource(stackname, asgLogicalId, nil)
 
@@ -323,7 +329,7 @@ class KSMaintUtil
   # Return the instid of an ec2 instance referenced in a CF stack
   #
   def getEc2InstId(cfLogicalId, stackSuffix)
-    instId = @cfUtil.getStackResource(KSCfUtil.getStackname(@stackParams, stackSuffix, nil), cfLogicalId, nil)
+    instId = @cfUtil.getStackResource(getStackname(@stackParams, stackSuffix, nil), cfLogicalId, nil)
     return instId
   end
 
@@ -346,7 +352,7 @@ class KSMaintUtil
   # Return an array of ec2 instance ids associated with an ASG referenced in a CF stack
   #
   def ecs2sFromAsg(stackSuffix, asgLogicalId)
-    asgPhyId = @cfUtil.getStackResource(KSCfUtil.getStackname(@stackParams, stackSuffix, nil), asgLogicalId, nil)
+    asgPhyId = @cfUtil.getStackResource(getStackname(@stackParams, stackSuffix, nil), asgLogicalId, nil)
     if asgPhyId.nil?
       puts "ASG #{asgLogicalId} not found in stack #{stackSuffix}"
       return
@@ -359,7 +365,7 @@ class KSMaintUtil
   # Return the ASG health_status and lifecycle_state of all ec2s managed by an ASG
   #
   def asgEc2Info(stackSuffix, asgLogicalId)
-    asgPhyId = @cfUtil.getStackResource(KSCfUtil.getStackname(@stackParams, stackSuffix, nil), asgLogicalId, nil)
+    asgPhyId = @cfUtil.getStackResource(getStackname(@stackParams, stackSuffix, nil), asgLogicalId, nil)
     if asgPhyId.nil?
       puts "ASG #{asgLogicalId} not found in stack #{stackSuffix}"
       return
@@ -372,7 +378,7 @@ class KSMaintUtil
   # Test for the existance of an ASG specified within a CF stack
   #
   def asgExists(stackSuffix, asgLogicalId)
-    asgPhyId = @cfUtil.getStackResource(KSCfUtil.getStackname(@stackParams, stackSuffix, nil), asgLogicalId, nil)
+    asgPhyId = @cfUtil.getStackResource(getStackname(@stackParams, stackSuffix, nil), asgLogicalId, nil)
     return asgPhyId != nil
   end
 
@@ -402,7 +408,7 @@ class KSMaintUtil
         end
         #Retrive version files from this host and add
         unless ec2IpAdder.nil?
-          rem = KsRemAccess.new(ec2IpAdder, absoluteKeyPath)
+          rem = KsRemoteAccess.new(ec2IpAdder)
           versionArray = rem.getRemoteVersionFileNames('/var/tmp')
           if versionArray.empty?
             infoHash["Versions"] = "Not Found"
@@ -438,7 +444,7 @@ class KSMaintUtil
       end
       #Retrive version files from this host and add
       unless ec2IpAdder.nil?
-        rem = KsRemAccess.new(ec2IpAdder, absoluteKeyPath)
+        rem = KsRemoteAccess.new(ec2IpAdder)
         versionArray = rem.getRemoteVersionFileNames('/var/tmp')
         if versionArray.empty?
           infoHash["Versions"] = "Not Found"
@@ -465,7 +471,7 @@ class KSMaintUtil
   # Return the S3 bucket name associated with the S3 CF stack using @stackParams parameters
   #
   def getS3BucketName()
-    bname = @cfUtil.getStackOutput(KSCfUtil.getStackname(@stackParams, KSCfUtil::S3_STACK_SUFFIX, nil), S3_BUCKET_NAME_OUTPUT_KEY)
+    bname = @cfUtil.getStackOutput(getStackname(@stackParams, KSCfUtil::S3_STACK_SUFFIX, nil), S3_BUCKET_NAME_OUTPUT_KEY)
     if bname.nil?
       return 'Not Found'
     end

@@ -12,15 +12,10 @@ require_relative 'aws_util/stack_build_params'
 require_relative 'aws_util/ks_maint_util'
 require_relative 'aws_util/ks_cf_util'
 require_relative 'aws_util/ks_rds_util'
+require_relative 'aws_util/ks_common'
 
 class AwsAccess
-  # def initialize(stackParams)
-  #   puts "CfController>>aws_setup called"
-  #   @stackBuild = stackParams
-  #   cf_util = KSCfUtil.new(@stackBuild)
-  #   rds_util = KSRdsUtil.new(@stackBuild)
-  #   maint_util = KSMaintUtil.new(@stackBuild)
-  # end
+  include KSCommon
 
   @@sshKeyPath = File.expand_path("../../keys/devKey.pem", File.dirname(__FILE__))
 
@@ -84,21 +79,22 @@ class AwsAccess
 
     rdsInstId = rds_util.getRdsInstanceId(stackParams)
     rdsInfoHash = rds_util.getRdsInfo(rdsInstId)
-    unless rdsInfoHash.empty?
-      addDbAccessInfo(rdsInfoHash, stackParams.shard, rdsInfoHash['Endpoint'])
-    end
+    # unless rdsInfoHash.empty?
+    #   addDbAccessInfo(rdsInfoHash, stackParams.shard, rdsInfoHash['Endpoint'])
+    # end
     gift_info[:rds_info] = rdsInfoHash
     rdsRepInstId = rds_util.getRdsReplicaInstanceId(stackParams)
     rdsRepInfoHash = rds_util.getRdsInfo(rdsRepInstId)
-    unless rdsRepInfoHash.empty?
-      addDbAccessInfo(rdsRepInfoHash, stackParams.shard, rdsRepInfoHash['Endpoint'])
-    end
+    # unless rdsRepInfoHash.empty?
+    #   addDbAccessInfo(rdsRepInfoHash, stackParams.shard, rdsRepInfoHash['Endpoint'])
+    # end
     gift_info[:rds_rep_info] = rdsRepInfoHash
     gift_info
   end
 
   def self.getCommonStatus(stackParams)
     puts "getCommonStatus: called for shard #{stackParams.shard}"
+    aws_access_inst = AwsAccess.new
     rds_util = KSRdsUtil.new(stackParams)
     cf_util = KSCfUtil.new(stackParams)
     maint_util = KSMaintUtil.new(stackParams)
@@ -106,10 +102,10 @@ class AwsAccess
     logRdsId = rds_util.getRdsLogInstanceId(stackParams)
     rds_info = rds_util.getRdsInfo(logRdsId)
     #puts "showEnvStatus: rds_info - #{rds_info}"
-    @portalGwElbUrlHttp = cf_util.getStackOutput(KSCfUtil.getStackname(stackParams, KSCfUtil::PORTAL_GW_ELB_STACK_SUFFIX, nil), KSMaintUtil::PORTAL_GW_ELB_URL_OUTPUT_KEY)
-    @portalElbUrlHttp = cf_util.getStackOutput(KSCfUtil.getStackname(stackParams, KSCfUtil::PORTAL_ELB_STACK_SUFFIX, nil), KSMaintUtil::PORTAL_ELB_URL_OUTPUT_KEY)
-    @servicesGwElbUrlHttp = cf_util.getStackOutput(KSCfUtil.getStackname(stackParams, KSCfUtil::SERVICES_SGW_ELB_STACK_SUFFIX, nil), KSMaintUtil::SERVICES_GW_ELB_URL_OUTPUT_KEY)
-    @logstashElbUrlHttp = cf_util.getStackOutput(KSCfUtil.getStackname(stackParams, KSCfUtil::LOGSTASH_ELB_STACK_SUFFIX, nil), KSMaintUtil::LOGSTASH_ELB_URL_OUTPUT_KEY)
+    @portalGwElbUrlHttp = cf_util.getStackOutput(aws_access_inst.getStackname(stackParams, KSCfUtil::PORTAL_GW_ELB_STACK_SUFFIX, nil), KSMaintUtil::PORTAL_GW_ELB_URL_OUTPUT_KEY)
+    @portalElbUrlHttp = cf_util.getStackOutput(aws_access_inst.getStackname(stackParams, KSCfUtil::PORTAL_ELB_STACK_SUFFIX, nil), KSMaintUtil::PORTAL_ELB_URL_OUTPUT_KEY)
+    @servicesGwElbUrlHttp = cf_util.getStackOutput(aws_access_inst.getStackname(stackParams, KSCfUtil::SERVICES_SGW_ELB_STACK_SUFFIX, nil), KSMaintUtil::SERVICES_GW_ELB_URL_OUTPUT_KEY)
+    @logstashElbUrlHttp = cf_util.getStackOutput(aws_access_inst.getStackname(stackParams, KSCfUtil::LOGSTASH_ELB_STACK_SUFFIX, nil), KSMaintUtil::LOGSTASH_ELB_URL_OUTPUT_KEY)
 
     common_info[:rds_info] = rds_info
     common_info[:portalGwElbUrlHttp] = @portalGwElbUrlHttp
@@ -140,6 +136,7 @@ class AwsAccess
     stackBuild.stacks= ['1']
     stackBuild.accesskey = ENV['AWS_ACCESS_KEY']
     stackBuild.region = region
+    stackBuild.alternateregion = region
     stackBuild.secretkey = ENV['AWS_SECRET_KEY']
     stackBuild.shard = shard
     stackBuild.env = env.downcase unless env.nil?

@@ -1,11 +1,14 @@
 require 'aws-sdk'
 
 require_relative './stack_build_params.rb'
+#require_relative '../../lib/ks_deploy_properties'
 
 
 class KSRdsUtil
 
-  ACCOUNT_ID_MAP = {'nonprod' => '593917551679', 'pp' => '524670336862', 'prod' => '???' }
+  include KSCommon
+
+  ACCOUNT_ID_MAP = {'nonprod' => '593917551679', 'pp' => '524670336862', 'prod' => '???'}
 
   RDS_MODIFYING_STATUS = 'modifying'
   RDS_AVAILABLE_STATUS = 'available'
@@ -14,54 +17,99 @@ class KSRdsUtil
   RDS_RENAMING_STATUS = 'renaming'
 
 
-
-
   def initialize(stackParams)
     @stackParams = stackParams
     #Run the local config.rb script to load AWS props and config AWS with keys and region
     begin
-      @rds = AWS::RDS.new(
+      #File.expand_path(File.dirname(__FILE__) + '/config')
+      @rds = Aws::RDS::Client.new(
           :access_key_id => @stackParams.accesskey,
           :secret_access_key => @stackParams.secretkey,
           :region => @stackParams.region)
 
     rescue Exception => e
       puts "KSRdsUtil>>initialize: error " + e.message
-      raise StandardError.new("KSRdsUtil>>initialize: error  #{e.message}");
     end
   end
 
-  def describeRdsInstances()
-    resp = @rds.client.describe_db_instances()
-    resp.data[:db_instances].each do |inst|
-      puts "DB instance #{inst[:db_instance_identifier]}"
-    end
-  end
 
-  def getRdsStatus(dbInstId)
-    resp = @rds.client.describe_db_instances()
-    resp.data[:db_instances].each do |inst|
-      if inst[:db_instance_identifier] == dbInstId
-        return inst[:db_instance_status]
+
+  def create_event_subscription(name, topic_arn, categories, db_instance_names)
+    sub_exists = false
+    resp = nil
+    begin
+      #See if subscription exists
+      resp = @rds.describe_event_subscriptions(subscription_name: name)
+    rescue Exception => e
+      unless e.message.include?('not found')
+        raise
       end
     end
-    return nil
+    begin
+      unless resp.nil?
+        current_db_inst_names = resp.data[:event_subscriptions_list][0][:source_ids_list]
+        puts "RDS event subscription #{name} exists with db instances #{current_db_inst_names}"
+        #Subscription exists, add new db instance names if not already there
+        db_instance_names.each do |inst_name|
+          unless current_db_inst_names.include?(inst_name)
+            puts "Adding DB instance #{inst_name} to event subscription #{name}"
+            @rds.add_source_identifier_to_subscription(subscription_name: name, source_identifier: inst_name)
+          else
+            puts "DB instance #{inst_name} already in event subscription #{name}"
+          end
+        end
+      else
+        #Create new event subscription
+        options = {
+            subscription_name: name,
+            source_type: 'db-instance',
+            sns_topic_arn: topic_arn,
+            enabled: true
+        }
+        options[:event_categories] = categories unless categories.nil?
+        options[:source_ids] = db_instance_names unless db_instance_names.nil?
+        puts "Creating new RDS envent subscription named #{name} and db instances #{db_instance_names}"
+        resp = @rds.create_event_subscription(options)
+        return resp.data[:event_subscription][:status]
+      end
+    rescue Exception => e
+      puts "create_event_subscription:  error " + e.message
+    end
+  end
+
+  # def db_instance_name(stack_params)
+  #   return 'keystone-' + stack_params.shard.downcase +  '-' + stack_params.env.downcase
+  # end
+  #
+  # def replica_db_instance_name(stack_params)
+  #   return 'keystone-' + stack_params.shard.downcase + '-rep-' +  stack_params.env.downcase
+  # end
+  #
+  # def log_db_instance_name(stack_params)
+  #   return 'keystone-log-common-' + stack_params.env.downcase
+  # end
+  #
+  # def rds_event_subscription_name(stack_params)
+  #   return  'Keystone-2-' + stack_params.env.upcase + '-RDSEventSubscription'
+  # end
+
+  def getRdsStatus(dbInstId)
+    begin
+      resp = @rds.describe_db_instances(db_instance_identifier: dbInstId)
+      return resp[:db_instances][0][:db_instance_status]
+    rescue Exception => e
+      puts "KSRdsUtil>> Status of dbInstId :  " + e.message
+    end
   end
 
   def getRdsEndpoint(dbInstId)
-    #puts "Getting RDS endpoint for #{dbInstId}"
-    resp = @rds.client.describe_db_instances()
-    resp.data[:db_instances].each do |inst|
-      if inst[:db_instance_identifier] == dbInstId
-        return inst[:endpoint][:address]
-      end
-    end
-    return nil
+    resp = @rds.describe_db_instances(db_instance_identifier: dbInstId)
+    return resp[:db_instances][0][:endpoint][:address]
   end
 
   def getRdsInstanceId(stackParams)
-    #Change name by removing -drrep from name, in later versions also remove -dr from name
-    newDbInstId = "keystone-" + stackParams.shard.downcase + '-' + stackParams.getEnvStripDr
+    envSuffix = stackParams.getEnvStripDr.downcase
+    newDbInstId = "keystone-" + stackParams.shard.downcase + '-' + envSuffix
     return newDbInstId
   end
 
@@ -72,14 +120,14 @@ class KSRdsUtil
   end
 
   def getRdsReplicaInstanceId(stackParams)
-    #Change name by removing -drrep from name, in later versions also remove -dr from name
-    newDbInstId = "keystone-" + stackParams.shard.downcase + '-rep-' + stackParams.getEnvStripDr
+    envSuffix = stackParams.getEnvStripDr.downcase
+    newDbInstId = "keystone-" + stackParams.shard.downcase + '-rep-' + envSuffix
     return newDbInstId
   end
 
   def getRdsDrReplicaInstanceId(stackParams)
     #Change name by removing -drrep from name, in later versions also remove -dr from name
-    newDbInstId = "keystone-" + stackParams.shard.downcase + '-drrep-' + stackParams.getEnvStripDr
+    newDbInstId = "keystone-" + stackParams.shard.downcase + '-drrep-' + stackParams.getEnvStripDr.downcase
     return newDbInstId
   end
 
@@ -97,19 +145,28 @@ class KSRdsUtil
   def getRdsInfo(dbInstId)
     #puts "Getting RDS info for #{dbInstId}"
     info = Hash.new
-    resp = @rds.client.describe_db_instances()
-    resp.data[:db_instances].each do |inst|
-      if inst[:db_instance_identifier] == dbInstId
-        info['Endpoint'] = inst[:endpoint][:address]
-        info['InstanceClass'] = inst[:db_instance_class]
-        info['Status'] = inst[:db_instance_status]
-        info['AvailabilityZone'] = inst[:availability_zone]
-        info['SecondaryAvailabilityZone'] = inst[:secondary_availability_zone]
-        info['MultiAz'] = inst[:multi_az]
-        info['Storage'] = inst[:allocated_storage]
-        info['Iops'] = inst[:iops]
-
-      end
+    begin
+      raise if dbInstId.nil?
+      resp = @rds.describe_db_instances(db_instance_identifier: dbInstId)
+    rescue
+      #puts "getRdsInfo: RDS instance not found for #{dbInstId}"
+      return info
+    end
+    inst = resp.data[:db_instances][0]
+    if inst.nil?
+      return info
+    end
+    begin
+      info['Endpoint'] = inst[:endpoint][:address]
+      info['InstanceClass'] = inst[:db_instance_class]
+      info['Status'] = inst[:db_instance_status]
+      info['AvailabilityZone'] = inst[:availability_zone]
+      info['SecondaryAvailabilityZone'] = inst[:secondary_availability_zone]
+      info['MultiAz'] = inst[:multi_az]
+      info['Storage'] = inst[:allocated_storage]
+      info['Iops'] = inst[:iops]
+    rescue
+      return info
     end
     return info
   end
@@ -157,7 +214,7 @@ class KSRdsUtil
     opts[:vpc_security_group_ids] = [dbSecurityGroup]
     opts[:db_parameter_group_name] = dbParameterGroup
     opts[:apply_immediately] = true
-    resp = @rds.client.modify_db_instance(opts)
+    resp = @rds.modify_db_instance(opts)
   end
 
   def modifyRdsToMultiAz(dbInstId)
@@ -166,7 +223,7 @@ class KSRdsUtil
     opts[:db_instance_identifier] = dbInstId
     opts[:multi_az] = true
     opts[:apply_immediately] = true
-    resp = @rds.client.modify_db_instance(opts)
+    resp = @rds.modify_db_instance(opts)
     puts "Modifed RDS instance #{dbInstId} to MultiAz"
   end
 
@@ -177,19 +234,25 @@ class KSRdsUtil
   #    ./deploy_keystone_dr_replica.sh -e DEV -a $AWS_ACCESS_KEY -s $AWS_SECRET_KEY -r sa-east-1 --source-db-instance-identifier arn:aws:rds:us-west-2:593917551679:db:keystone-nagift-dev
   #
   def createXRegionReadRep(instId, sourceDbInstId, subnetGrp)
-    puts "Creating cross region replica #{instId}"
-    opts = Hash.new
-    opts[:db_instance_identifier] = instId
-    opts[:source_db_instance_identifier] = sourceDbInstId
-    opts[:db_subnet_group_name] = subnetGrp
-    @rds.client.create_db_instance_read_replica(opts)
+    puts "Creating cross region replica #{instId} from source DB #{sourceDbInstId} with subnet group #{subnetGrp}"
+
+    begin
+      opts = Hash.new
+      opts[:db_instance_identifier] = instId
+      opts[:source_db_instance_identifier] = sourceDbInstId
+      opts[:db_subnet_group_name] = subnetGrp
+      @rds.create_db_instance_read_replica(opts)
+    rescue Exception => e
+      puts "KSRdsUtil>>createXRegionReadRep: error " + e.message
+    end
+
   end
 
   def rebootRdsInstance(dbInstId)
     puts "Rebooting cross region replica #{dbInstId}"
     opts = Hash.new
     opts[:db_instance_identifier] = dbInstId
-    @rds.client.reboot_db_instance(opts)
+    @rds.reboot_db_instance(opts)
   end
 
   def createRdsXRegionReplica(replicaDbInstId, sourceDbArnId, replicaDbSubnetGrp, dbSecurityGroupId, dbParameterGroupName)
@@ -206,7 +269,7 @@ class KSRdsUtil
     puts "Promoting cross region replica #{replicaDbInstId}"
     opts = Hash.new
     opts[:db_instance_identifier] = replicaDbInstId
-    @rds.client.promote_read_replica(opts)
+    @rds.promote_read_replica(opts)
     sleep(20)
     waitForRdsAvailable(replicaDbInstId)
   end
@@ -218,7 +281,7 @@ class KSRdsUtil
     opts[:db_instance_identifier] = currentInstId
     opts[:new_db_instance_identifier] = newInstId
     opts[:apply_immediately] = true
-    resp = @rds.client.modify_db_instance(opts)
+    resp = @rds.modify_db_instance(opts)
     puts "resp = #{resp}"
     sleep(20)
     waitForRdsStatusToChangeFrom(currentInstId, RDS_MODIFYING_STATUS)
@@ -238,7 +301,7 @@ class KSRdsUtil
     opts[:new_db_instance_identifier] = newInstId
     opts[:multi_az] = true
     opts[:apply_immediately] = true
-    resp = @rds.client.modify_db_instance(opts)
+    resp = @rds.modify_db_instance(opts)
     sleep(20)
     waitForRdsStatusToChangeFrom(currentInstId, RDS_MODIFYING_STATUS)
     sleep(20)
@@ -250,6 +313,7 @@ class KSRdsUtil
   end
 end
 
+
 if __FILE__==$0
   puts "Starting"
   stackBuild = StackBuildParams.new
@@ -260,14 +324,14 @@ if __FILE__==$0
   stackBuild.secretkey = ENV['AWS_SECRET_KEY']
   stackBuild.shard = 'NAGift'
   stackBuild.env = 'dev'
-  stackBuild.profile = KSDeployProperties::PROFILE_MEDIUM
+  stackBuild.profile = KSCommon::PROFILE_MEDIUM
 
 
-  replicaDbInstId = "keystone-nagift-drrep-dev"
-  sourceDbArn = "arn:aws:rds:us-west-2:593917551679:db:keystone-nagift-dev"
-  replicaDbSubnetGrpName = "keystone-2-dev-dr-nagift-dbparameters-keystonesubnetgroup-yda7vasn6hy3"
-  dbSecurityGroupId = 'sg-8ea25ceb'
-  dbParameterGroupName = 'keystone-2-dev-dr-nagift-dbparameters-keystonedbparametergroup-1vkclddzfgw8p'
+  # replicaDbInstId = "keystone-nagift-drrep-dev"
+  # sourceDbArn = "arn:aws:rds:us-west-2:593917551679:db:keystone-nagift-dev"
+  # replicaDbSubnetGrpName = "keystone-2-dev-dr-nagift-dbparameters-keystonesubnetgroup-yda7vasn6hy3"
+  # dbSecurityGroupId = 'sg-8ea25ceb'
+  # dbParameterGroupName = 'keystone-2-dev-dr-nagift-dbparameters-keystonedbparametergroup-1vkclddzfgw8p'
 
   inst = KSRdsUtil.new(stackBuild)
 

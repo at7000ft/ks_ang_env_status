@@ -5,6 +5,6 @@
 
 var app = angular.module('KeystoneEnvStatus', ['templates','cgBusy']);
 
-app.constant('version', '0.6.0');
+app.constant('version', '1.0.0');
 
 

@@ -1,177 +1,118 @@
 require 'aws-sdk'
 
 require_relative './stack_build_params.rb'
+require_relative 'ks_common'
 
 
 class KSCfUtil
-  #Stack suffixes
-  ROLES_STACK_SUFFIX = "Roles"
-  S3_STACK_SUFFIX = "S3"
-  DB_PARAMETERS_STACK_SUFFIX="DBParameters"
-  DB_STACK_SUFFIX = "DB"
-  REPLICA_DB_PARAMETERS_STACK_SUFFIX="ReplicaDBParameters"
-  REPLICA_DB_STACK_SUFFIX = "ReplicaDB"
-  LOG_DB_STACK_SUFFIX = "LogDB"
-  TRANSIENT_STACK_SUFFIX = "Transient"
-  LOG_DB_TRANSIENT_STACK_SUFFIX = "LogDBTransient"
-  SECGRP_STACK_SUFFIX = "SecGrp"
-  ENI_STACK_SUFFIX = "ENI"
-  ELBS_STACK_SUFFIX = "ELBs"
-  SERVICES_STACK_SUFFIX = "Services"
-  SERVICES_SGW_STACK_SUFFIX = "ServicesSGW"
-  SERVICES_SGW_ELB_STACK_SUFFIX = "ServicesSGWELB"
-  KERNEL_STACK_SUFFIX = "Kernel"
-  KERNEL1_STACK_SUFFIX = "Kernel1"
-  KERNEL2_STACK_SUFFIX = "Kernel2"
-  KERNEL3_STACK_SUFFIX = "Kernel3"
-  KERNEL4_STACK_SUFFIX = "Kernel4"
-  REPLAYER_STACK_SUFFIX = "Replayer"
-  PORTAL_ELB_STACK_SUFFIX = "PortalElb"
-  PORTAL_STACK_SUFFIX = "Portal"
-  LOGSTASH_ELB_STACK_SUFFIX = "LogstashELB"
-  LOGSTASH_STACK_SUFFIX = "Logstash"
-  PORTAL_GW_STACK_SUFFIX = "PortalGW"
-  PORTAL_GW_ELB_STACK_SUFFIX = "PortalGWELB"
-  BATCH_STACK_SUFFIX = "Batch"
-  BASTION_STACK_SUFFIX = "Bastion"
-  BASTION_EBS_STACK_SUFFIX = "BastionEbs"
-  ALARMBATCH_STACK_SUFFIX = "AlarmBatch"
-  ALARMRDS_STACK_SUFFIX = "AlarmRds"
-  ALARMRDS_REPLICA_STACK_SUFFIX = "AlarmRdsReplica"
-  ALARM_PORTAL_SUFFIX = "AlarmPortal"
-  ALARM_SERVICES_SUFFIX = "AlarmServices"
-  ALARM_SYSLOGNG_SUFFIX = "AlarmSyslogNg"
-  ALARM_SNS_SUFFIX = "AlarmSns"
-  ALARM_LINUX_SYSTEM_SUFFIX = "AlarmLinuxSystem"
-  ALARM_KERNEL_CPU_SUFFIX = "AlarmKernelCPUUtil"
-  ALARMKERNEL_STACK_SUFFIX = "AlarmKernel"
-  ALARMKERNEL1_STACK_SUFFIX = "AlarmKernel1"
-  ALARMKERNEL2_STACK_SUFFIX = "AlarmKernel2"
-  ALARMKERNEL3_STACK_SUFFIX = "AlarmKernel3"
-  ALARMKERNEL4_STACK_SUFFIX = "AlarmKernel4"
-  ALARM_COMMON_ELB_STACK_SUFFIX = "AlarmCommonElb"
-  ALARM_BASE_ELB_STACK_SUFFIX = "AlarmBaseElb"
-  MIGRATION_STACK_SUFFIX = "Migration"
-  MIGRATION_EBS_STACK_SUFFIX = "MigrationEbs"
+
+  include KSCommon
+
+  PRE_FAILOVER_SUFFIXS = [ROLES_STACK_SUFFIX,
+                          S3_STACK_SUFFIX,
+                          DB_PARAMETERS_STACK_SUFFIX,
+                          REPLICA_DB_PARAMETERS_STACK_SUFFIX,
+                          SECGRP_STACK_SUFFIX,
+                          ENI_STACK_SUFFIX]
+
+  PRE_FAILOVER_COMMON_SUFFIXS = [LOG_DB_STACK_SUFFIX,
+                                 LOG_DB_TRANSIENT_STACK_SUFFIX,
+                                 PORTAL_GW_ELB_STACK_SUFFIX,
+                                 SERVICES_SGW_ELB_STACK_SUFFIX]
+
+  ON_FAILOVER_SUFFIXS = [MIGRATION_EBS_STACK_SUFFIX,
+                         MIGRATION_STACK_SUFFIX,
+                         ALARMBATCH_STACK_SUFFIX,
+                         ALARMRDS_STACK_SUFFIX,
+                         ALARMRDS_REPLICA_STACK_SUFFIX,
+                         ALARMKERNEL1_STACK_SUFFIX,
+                         ALARMKERNEL2_STACK_SUFFIX,
+                         ALARMKERNEL3_STACK_SUFFIX,
+                         ALARMKERNEL4_STACK_SUFFIX,
+                         ALARM_BASE_ELB_STACK_SUFFIX,
+                         BASTION_STACK_SUFFIX,
+                         BATCH_STACK_SUFFIX,
+                         KERNEL1_STACK_SUFFIX,
+                         KERNEL2_STACK_SUFFIX,
+                         KERNEL3_STACK_SUFFIX,
+                         KERNEL4_STACK_SUFFIX,
+                         SERVICES_STACK_SUFFIX,
+
+                         DB_STACK_SUFFIX,
+                         REPLICA_DB_STACK_SUFFIX,
+                         TRANSIENT_STACK_SUFFIX,
+                         BASTION_EBS_STACK_SUFFIX
+  ]
+
+  ON_FAILOVER_COMMON_SUFFIXS = [PORTAL_STACK_SUFFIX,
+                                PORTAL_ELB_STACK_SUFFIX,
+                                PORTAL_GW_STACK_SUFFIX,
+                                ALARM_COMMON_ELB_STACK_SUFFIX,
+                                SERVICES_SGW_STACK_SUFFIX,
+                                LOGSTASH_STACK_SUFFIX,
+                                LOGSTASH_ELB_STACK_SUFFIX
+  ]
 
   def initialize(stackParams)
+    @stackParams = stackParams
     begin
-      @cf = AWS::CloudFormation.new(
+      @cf = Aws::CloudFormation::Client.new(
           :access_key_id => stackParams.accesskey,
           :secret_access_key => stackParams.secretkey,
           :region => stackParams.region)
-      @stackParams = stackParams
-    rescue Exception => error
+
+      @cfalt = Aws::CloudFormation::Client.new(
+          :access_key_id => stackParams.accesskey,
+          :secret_access_key => stackParams.secretkey,
+          :region => stackParams.alternateregion)
+    rescue Exception => e
       puts "KSCfUtil>>initialize: error " + e.message
-      raise StandardError.new("KSCfUtil>>initialize: error  #{e.message}");
+      exit
     end
   end
 
-  def self.getStackname(stackParams, suffix, targetShard)
-    if targetShard.nil?
-      stackNm = "Keystone-2-" + stackParams.getEnvStripDr.upcase + "-" + stackParams.shard
-    else
-      stackNm = "Keystone-2-" + stackParams.getEnvStripDr.upcase + "-" + targetShard
-    end
+  def getAllKeystoneStacks()
+    resp = @cf.describe_stacks
+    stacks = resp.data[:stacks]
+    next_token = resp.data[:next_token]
 
-    unless suffix.nil?
-      stackNm += "-" + suffix
+    until next_token.nil?
+      #puts "getAllKeystoneStacks: next_token = #{next_token} stack count #{stacks.size}"
+      resp = @cf.describe_stacks(next_token: next_token)
+      (stacks << resp.data[:stacks]).flatten!
+      next_token = resp.data[:next_token]
     end
-
-    unless  stackParams.instancenumber.nil?
-      stackNm += stackParams.instancenumber
+    keystone_stacks = []
+    stacks.each do |stack|
+      if stack[:stack_name].start_with?('Keystone-2-')
+        keystone_stacks << stack[:stack_name]
+      end
     end
-
-    return stackNm
+    keystone_stacks
   end
 
   def showKeystoneStacks()
-    stacks = @cf.stacks
-    puts "\nKeystone stacks in region #{@stackParams.region}"
-    stacks.each do |stack|
-      if stack.name.start_with?('Keystone-2-')
-        puts stack.name
-      end
+    stacknames = getAllKeystoneStacks()
+    puts "\n#{stacknames.size} Keystone stacks in region #{@stackParams.region}"
+    stacknames.each do |stack|
+      puts stack
     end
-  end
-
-  def getStackResource(stack_name, logicalId, physicalId)
-    if logicalId.nil?
-      res = @cf.stack_resource(physicalId)
-      return res.logical_resource_id
-    else
-      res = @cf.stacks[stack_name].resources[logicalId]
-      begin
-        phyId = res.physical_resource_id
-      rescue
-        #puts "Stack resource #{logicalId} not found"
-        return nil
-      end
-    end
-  end
-
-  def getResourceStatus(stack_name, logicalId)
-    stat = @cf.stacks[stack_name].resources[logicalId].resource_status
-    return stat
-  end
-
-  def getResourceStatusReason(stack_name, logicalId)
-    stat = @cf.stacks[stack_name].resources[logicalId].resource_status_reason
-    return stat
-  end
-
-  def getStackOutput(stack_name, key)
-    begin
-      #puts "getStackOutput: called for #{stack_name} and #{key} @cf = #{@cf}"
-      outputArray = @cf.stacks[stack_name].outputs
-    rescue Exception => e
-      #puts "getStackOutput: Processing error occured accessing #{stack_name} > #{key} - #{e.message}\n"
-      return nil
-    end
-    #puts "outputArray = #{outputArray}"
-    outputArray.each do |output|
-      if output.key == key
-        return output.value
-      end
-    end
-    puts "Error getStackOutput: output not found for #{key} in stack #{stack_name}"
-    return nil
-  end
-
-  def getStackInfo(name)
-    stack = @cf.stacks[name]
-    stack.creation_time
-  end
-
-  def showEnvKeystoneStacks()
-    stacks = @cf.stacks
-    sbuf = Array.new
-    puts "\nKeystone stacks in env #{@stackParams.env} and region #{@stackParams.region} starting with Keystone-2-#{@stackParams.env.upcase}"
-    stacks.each do |stack|
-      if stack.name.start_with?("Keystone-2-#{@stackParams.env.upcase}")
-        sbuf << stack.name
-      end
-    end
-    sbuf
   end
 
   #
   # Return an array of all stack names containing the given substring, all case independent
   #
   def getKeystoneStacks(substring)
-    stacks = @cf.stacks
+    stacknames = getAllKeystoneStacks()
     sbuf = Array.new
-    stacks.each do |stack|
-      if stack.name.downcase.include? substring.downcase
-        sbuf << stack.name
+    stacknames.each do |stack|
+      if stack.downcase.include? substring.downcase
+        sbuf << stack
       end
     end
     sbuf
   end
 
-  def getTestStacks()
-    ['']
-  end
 
   def deleteStacks(stacklist, shard)
     @stackParams.shard = shard
@@ -184,29 +125,225 @@ class KSCfUtil
     end
   end
 
+  def deleteStack(stack_name)
+    puts "\nDeleting stack #{stack_name}"
+    @cf.delete_stack(stack_name: stack_name)
+  end
 
+  def getStackOutput(stack_name, key)
+    begin
+      resp = @cf.describe_stacks(
+          stack_name: stack_name
+      )
+      outputArray = resp.data[:stacks][0][:outputs]
+    rescue Exception => e
+      #puts "getStackOutput: Processing error occured accessing #{stack_name} > #{key} - #{e.message}\n"
+      return nil
+    end
+    outputArray.each do |output|
+      if output.output_key == key
+        return output.output_value
+      end
+    end
+    puts "Error getStackOutput: output not found for #{key} in stack #{stack_name}"
+    return nil
+  end
+
+  def getStackStatus(stackName)
+    begin
+      resp = @cf.describe_stacks(stack_name: stackName)
+    rescue Exception => e
+      if e.message.include?("does not exist")
+        return false
+      else
+        puts "getStackStatus error - " + e.message
+        return false
+      end
+    end
+    return resp.data[:stacks][0].stack_status
+  end
+
+  def getStackStatusReason(stackName)
+    begin
+      resp = @cf.describe_stacks(stack_name: stackName)
+    rescue Exception => e
+      if e.message.include?("does not exist")
+        return 'unknown'
+      else
+        puts "getStackStatusReason error - " + e.message
+        return 'unknown'
+      end
+    end
+    return resp.data[:stacks][0].stack_status_reason
+  end
+
+  def stackExists(stackName)
+    begin
+      resp = @cf.describe_stacks(stack_name: stackName)
+    rescue Exception => e
+      if e.message.include?("does not exist")
+        return false
+      else
+        puts "stackExists error - " + e.message
+        #puts e.backtrace
+        return false
+      end
+    end
+    return resp.data[:stacks].size > 0
+  end
+
+  def stackExistsInAlternateRegion(stackName)
+    begin
+      resp = @cfalt.describe_stacks(stack_name: stackName)
+    rescue Exception => e
+      if e.message.include?("does not exist")
+        return false
+      else
+        puts "stackExists error - " + e.message
+        return false
+      end
+    end
+    return resp.data[:stacks].size > 0
+  end
+
+  #
+  #Return a physical or logical resounce id for a stack
+  #
+  def getStackResource(stack_name, logicalId, physicalId)
+    options = {}
+    options[:stack_name] = stack_name
+    unless logicalId.nil?
+      options[:logical_resource_id] = logicalId
+    end
+    unless physicalId.nil?
+      options[:physical_resource_id] = physicalId
+    end
+
+    begin
+      res = @cf.describe_stack_resources(options)
+      unless logicalId.nil?
+        return res.data[:stack_resources][0][:physical_resource_id]
+      end
+      unless physicalId.nil?
+        return res.data[:stack_resources][0][:logical_resource_id]
+      end
+    rescue
+      #puts "getStackResource: resource not found for stack: #{stack_name} logicalId: #{logicalId} physicalId: #{physicalId}"
+      return nil
+    end
+    return nil
+  end
+
+  def getStackResourceFromAlternateRegion(stack_name, logicalId, physicalId)
+    options = {}
+    options[:stack_name] = stack_name
+    unless logicalId.nil?
+      options[:logical_resource_id] = logicalId
+    end
+    unless physicalId.nil?
+      options[:physical_resource_id] = physicalId
+    end
+
+    begin
+      res = @cfalt.describe_stack_resources(options)
+      unless logicalId.nil?
+        return res.data[:stack_resources][0][:physical_resource_id]
+      end
+      unless physicalId.nil?
+        return res.data[:stack_resources][0][:logical_resource_id]
+      end
+    rescue
+      #puts "getStackResource: resource not found for stack: #{stack_name} logicalId: #{logicalId} physicalId: #{physicalId}"
+      return nil
+    end
+    return nil
+  end
+
+  #
+  #Return all resounces for a stack
+  #
+  def getStackResources(stack_name)
+    options = {}
+    options[:stack_name] = stack_name
+
+    begin
+      res = @cf.describe_stack_resources(options)
+    rescue
+      #puts "getStackResource: resource not found for stack #{stack_name}"
+      return nil
+    end
+    return res.data[:stack_resources][0]
+  end
+
+
+  def getResourceStatus(stack_name, logicalId)
+    options = {}
+    options[:stack_name] = stack_name
+    options[:logical_resource_id] = logicalId
+    res = @cf.describe_stack_resources(options)
+    return res.data[:stack_resources][0][:resource_status]
+  end
+
+  def getResourceStatusReason(stack_name, logicalId)
+    options = {}
+    options[:stack_name] = stack_name
+    options[:logical_resource_id] = logicalId
+    res = @cf.describe_stack_resources(options)
+    return res.data[:stack_resources][0][:resource_status_reason]
+  end
+
+  def getStackOutputFromAlternateRegion(stack_name, key)
+    begin
+      resp = @cfalt.describe_stacks(
+          stack_name: stack_name
+      )
+      outputArray = resp.data[:stacks][0][:outputs]
+    rescue Exception => e
+      puts "getStackOutputFromAlternateRegion: Processing error occured accessing #{stack_name} > #{key} - #{e.message}\n"
+      return nil
+    end
+    outputArray.each do |output|
+      if output.output_key == key
+        return output.output_value
+      end
+    end
+    puts "Error getSgetStackOutputFromAlternateRegiontackOutput: output not found for #{key} in stack #{stack_name}"
+    return nil
+  end
+
+  def getStackOuputParams(stackParams, stackSuffix, targetShard, key)
+    return getStackOutput(getStackname(stackParams, stackSuffix, targetShard), key)
+  end
+
+  def getStackOuputParamsAlternateRegion(stackParams, stackSuffix, targetShard, key)
+    return getStackOutputFromAlternateRegion(getStackname(stackParams, stackSuffix, targetShard), key)
+  end
 end
 
 if __FILE__==$0
-
-  # KSDeploy.setTemplatePath(KSDeploy::TEMPLATE_PATH)
-  # KSDeploy.setPropertiesPath(KSDeploy::PROPERTIES_PATH)
-
   stackBuild = StackBuildParams.new
   stackBuild.modparam = nil
   stackBuild.stacks= ['1']
   stackBuild.accesskey = ENV['AWS_ACCESS_KEY']
+  stackBuild.alternateregion = 'us-east-1'
   stackBuild.region = 'us-west-2'
   stackBuild.secretkey = ENV['AWS_SECRET_KEY']
   stackBuild.shard = 'NAGift'
-  stackBuild.env = 'qa-m'
-  stackBuild.profile = StackBuildParams::PROFILE_MEDIUM
+  stackBuild.env = 'dev'
+  stackBuild.profile = KSCommon::PROFILE_MEDIUM
 
   puts "Using #{stackBuild.to_s}"
 
 
   dep = KSCfUtil.new(stackBuild)
-  #puts dep.showEnvKeystoneStacks
-  #puts dep.getStackResource(KSCfUtil.getStackname(stackBuild, "Services",nil),"RestfulServicesAutoScalingGroup",nil)
-  puts dep.getKeystoneStacks('keystone-2-')
+  dep.showKeystoneStacks
+
+  # stackname = 'Keystone-2-PP-DR-NAGift-ReplicaDBParameters'
+  #
+  # puts "\nDeleting #{stackname}"
+  # dep.deleteStack(stackname)
+
+  #dep.deleteStacks(KSCfUtil::PRE_FAILOVER_COMMON_SUFFIXS, 'Common')
+  #dep.deleteStacks(KSCfUtil::PRE_FAILOVER_SUFFIXS, 'NAGift')
+  #dep.deleteStacks(KSCfUtil::PRE_FAILOVER_SUFFIXS, 'IGift')
 end

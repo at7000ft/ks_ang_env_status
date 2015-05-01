@@ -52,9 +52,9 @@ gem 'bower-rails'
 gem 'angular-rails-templates'
 
 
-gem 'aws-sdk', '~> 1.63.0'
+gem 'aws-sdk', '~> 2'
 
-gem 'minitest'
+#gem 'minitest'
 
 gem 'rufus-scheduler'
 

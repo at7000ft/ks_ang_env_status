@@ -108,16 +108,6 @@ app.controller('NavController', function ($scope, $http, $log, AwsService, versi
          this.rdsType = "";
       }
 
-      //
-      //The CLoop shard only lives on the DR region and its env has a -dr suffix
-      //if (shard == 'cloop') {
-      //   updateRegion = 'sa-east-1';
-      //   updateEnv = env + '-DR';
-      //} else {
-      //   updateRegion = this.currentRegion;
-      //   updateEnv = env;
-      //}
-
       updateRegion = this.currentRegion;
       updateEnv = env;
 

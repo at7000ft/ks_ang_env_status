@@ -29,7 +29,7 @@ module Api
             AwsAccess.getEnvsStatus(envArray, AwsAccess.getStackBuild(nil, region, nil))
           end
         end
-        @shardLookupMap = {'common' => 'Common', 'nagift' => 'NAGift', 'igift' => 'IGift', 'cloop' => 'CLoop'}
+        @shardLookupMap = {'common' => 'Common', 'nagift' => 'NAGift', 'igift' => 'IGift', 'cloop' => 'CLoop', 'bes' => 'BES'}
       end
 
       #Add some http headers to all outgoing responses to allow localhost testing
@@ -73,7 +73,7 @@ module Api
               AwsAccess.getCommonStatus(stackBuild)
             end
 
-          when 'nagift', 'igift', 'cloop'
+          when 'nagift', 'igift', 'cloop','bes'
             @shard_info = Rails.cache.fetch(stackBuild.getCacheKey, :expires_in => KeystoneUtil::CACHE_TIMEOUT_STACKS) do
               AwsAccess.getGiftStatus(stackBuild)
             end
@@ -95,7 +95,7 @@ module Api
         case shard
           when "all"
             Rails.cache.clear
-          when "common","igift","nagift"
+          when "common","igift","nagift","cloop","bes"
             stackBuild = AwsAccess.getStackBuild(env, region, @shardLookupMap[shard.downcase])
             Rails.cache.delete(stackBuild.getCacheKey)
           else

@@ -48,7 +48,7 @@
     <!-- Busy dialog that waits on http promise to detect message completion -->
     <div cg-busy="{promise:navigator.httpPromise, message: 'Please wait, accessing AWS...', backdrop:true,templateUrl:'waitDialog.html',delay:300,minDuration:500}"></div>
 </nav>
-<!-- Error message div, only shows if errorMessage var is not empty -->
+<!-- Error message div, only shows if errorMessage var is not empty in Angular NavController-->
 <div class="classWithPad text-center">
     <div class="alert alert-warning"  ng-if="navigator.errorMessage.length > 0">
         <a href="#" class="close" data-dismiss="alert">&times;</a>

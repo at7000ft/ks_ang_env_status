@@ -16,9 +16,11 @@ cd ksangenvstatus
 unzip ks_ang_env_status.zip
 cd ks_ang_env_status
 #After killing current rails process
+rvm use 2.2.2
 rails s -b 0.0.0.0 > rails_output.txt 2>&1 &
 
 #OR
+rvm use 2.2.2
 cd bin
 ./startup.sh
 

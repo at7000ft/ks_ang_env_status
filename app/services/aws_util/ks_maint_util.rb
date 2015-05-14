@@ -268,7 +268,7 @@ class KSMaintUtil
   end
 
   def waitForNewInstanceCompletion(stackSuffix, asgLogicalId)
-    stackname = KSCfUtil.getStackname(@stackParams, stackSuffix, nil)
+    stackname = getStackname(@stackParams, stackSuffix, nil)
     #puts "\nWaiting for instance resumption for  #{asgLogicalId} in stack #{stackname}  "
 
     asgPhyId = @cfUtil.getStackResource(stackname, asgLogicalId, nil)

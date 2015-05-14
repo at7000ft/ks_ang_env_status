@@ -58,21 +58,6 @@ app.controller('NavController', function ($scope, $http, $log, AwsService, versi
             $log.error('flushCaches failure - ', error.data.message);
             status.errorMessage = error.data.message;
          });
-      //AwsService.flushCaches().
-      //   success(function (data, status, headers, config) {
-      //      $log.info("flushCaches called");
-      //   }).
-      //   error(function (data, status, headers, config) {
-      //      $log.error('flushCaches failure ', error);
-      //   });
-
-      //$http.get('/api/v1/flushCaches').
-      //   success(function (data, status, headers, config) {
-      //      $log.info("flushCaches success, status - " + status);
-      //   }).
-      //   error(function (data, status, headers, config) {
-      //      $log.error('flushCaches failure ', status);
-      //   });
    }
 
    //Request the status of all environments in the AWS region passed in
@@ -190,23 +175,23 @@ app.controller('NavController', function ($scope, $http, $log, AwsService, versi
    this.updateForRegion('us-west-2');
 });
 
-app.factory('httpInterceptor', ['$location', '$q', function ($location, $q) {
-   return function (promise) {
-      promise.then(
-         function (response) {
-            console.log("httpInterceptor: called with " + response);
-            return response;
-         },
-         function (response) {
-            console.log("httpInterceptor: error - " + response);
-            return $q.reject(response);
-         }
-      );
-      return promise;
-   };
-}]);
-
-app.config(function ($httpProvider) {
-   $httpProvider.interceptors.push('httpInterceptor');
-});
+//app.factory('httpInterceptor', ['$location', '$q', function ($location, $q) {
+//   return function (promise) {
+//      promise.then(
+//         function (response) {
+//            console.log("httpInterceptor: called with " + response);
+//            return response;
+//         },
+//         function (response) {
+//            console.log("httpInterceptor: error - " + response);
+//            return $q.reject(response);
+//         }
+//      );
+//      return promise;
+//   };
+//}]);
+//
+//app.config(function ($httpProvider) {
+//   $httpProvider.interceptors.push('httpInterceptor');
+//});
 

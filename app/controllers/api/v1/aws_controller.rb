@@ -17,7 +17,6 @@ module Api
     class AwsController < ActionController::Base
 
 
-
       def initialize
         puts "AwsController>>initialize: running"
         scheduler = Rufus::Scheduler.new
@@ -49,10 +48,23 @@ module Api
         puts "envsStatus: called with params - #{region}"
 
         envArray = getEnvArray(region)
+        cacheSucccess = true
+        errorMessage = ''
         @envStatusMap = Rails.cache.fetch(KeystoneUtil::STATUS_MAP_KEY_PREFIX + '-' + region, :expires_in => KeystoneUtil::CACHE_TIMEOUT_STACKS) do
-          AwsAccess.getEnvsStatus(envArray, AwsAccess.getStackBuild(nil, region, nil))
+          begin
+            AwsAccess.getEnvsStatus(envArray, AwsAccess.getStackBuild(nil, region, nil))
+          rescue Exception => e
+            cacheSucccess = false
+            errorMessage = e.message
+            break
+          end
         end
-        render json: @envStatusMap
+        if cacheSucccess
+          render json: @envStatusMap
+        else
+          render json: {:errors => [errorMessage]}, :status => 422
+        end
+
 
         # If error - render json: {:errors => ['Bad stufff']}, :status => 422
         # Check errors on client - var errors = JSON(xhr.responseTest).errors
@@ -73,7 +85,7 @@ module Api
               AwsAccess.getCommonStatus(stackBuild)
             end
 
-          when 'nagift', 'igift', 'cloop','bes'
+          when 'nagift', 'igift', 'cloop', 'bes'
             @shard_info = Rails.cache.fetch(stackBuild.getCacheKey, :expires_in => KeystoneUtil::CACHE_TIMEOUT_STACKS) do
               AwsAccess.getGiftStatus(stackBuild)
             end
@@ -95,16 +107,17 @@ module Api
         case shard
           when "all"
             Rails.cache.clear
-          when "common","igift","nagift","cloop","bes"
+          when "common", "igift", "nagift", "cloop", "bes"
             stackBuild = AwsAccess.getStackBuild(env, region, @shardLookupMap[shard.downcase])
             Rails.cache.delete(stackBuild.getCacheKey)
           else
             puts "Invalid shard value received - #{shard}"
         end
-        #Rails.cache.clear
         render json: {}
 
+        #
         #Render a test error (returns an object with a 'message' variable with the error string)
+        #
         #render :json => {:message => "Something bad just happened "}, :status => 500
       end
 
@@ -122,7 +135,8 @@ module Api
         render json: {}
       end
 
-
+      #
+      # Stop an environment in a region.
       #Access at http://localhost:3000/api/v1/stopEnv
       def stopEnv
         puts "stopEnv: called with params - #{params['region']} - #{params['env']}"
@@ -133,6 +147,8 @@ module Api
         render json: {}
       end
 
+      #
+      #Return an array of [aws region id, region name]  arrays
       #Access at http://localhost:3000/api/v1/regions
       def regions
         puts "regions: called with params - #{params}"

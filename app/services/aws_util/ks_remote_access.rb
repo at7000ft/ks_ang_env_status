@@ -19,6 +19,10 @@ class KsRemoteAccess
     #puts "keyPath - #{@sshKeyPath}"
   end
 
+  #
+  # Return an array of version file and contents
+  # If a fingerprint error occurs clear .ssh/known_hosts
+  #
   def getRemoteVersionFileNames(path)
     begin
       session = Net::SSH.start(@host, @user, :keys => [@sshKeyPath])
@@ -42,7 +46,9 @@ class KsRemoteAccess
       end
       session.close
     rescue Exception => e
-      puts "\ngetRemoteVersionFileNames: Processing error occured - #{e.message}\n"
+      puts "\ngetRemoteVersionFileNames: Processing error occured - #{e.message}  (if fingerprint error need to remove .ssh/knownhosts)\n"
+      #Remove local known_hosts for next time
+      system('rm ' + ENV['HOME'] + '/.ssh/known_hosts')
       versions = ['Not found']
     end
     versions

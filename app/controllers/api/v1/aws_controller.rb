@@ -18,10 +18,10 @@ module Api
 
 
       def initialize
-        puts "AwsController>>initialize: running"
+        #puts "AwsController>>initialize: running"
         scheduler = Rufus::Scheduler.new
         scheduler.every '6h' do
-          puts "AwsController>>initialize: load cache running"
+          #puts "AwsController>>initialize: load cache running"
           region = 'us-west-2'
           envArray = getEnvArray(region)
           Rails.cache.fetch(KeystoneUtil::STATUS_MAP_KEY_PREFIX + '-' + region, :expires_in => KeystoneUtil::CACHE_TIMEOUT_STACKS) do

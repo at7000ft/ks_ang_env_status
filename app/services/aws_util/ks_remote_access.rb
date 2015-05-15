@@ -47,16 +47,27 @@ class KsRemoteAccess
       session.close
     rescue Exception => e
       puts "\ngetRemoteVersionFileNames: Processing error occured - #{e.message}  (if fingerprint error need to remove .ssh/knownhosts)\n"
-      #Remove local known_hosts for next time
-      system('rm ' + ENV['HOME'] + '/.ssh/known_hosts')
-      versions = ['Not found']
+      cleanUpKnowhosts()
     end
     versions
   end
+
+  def cleanUpKnowhosts()
+    begin
+      #Remove local known_hosts for next time
+      system('rm ' + ENV['HOME'] + '/.ssh/known_hosts')
+      versions = ['Not found']
+    rescue Exception => e
+      puts "Error removing .ssh/known_hosts - #{e.message}"
+      return
+    end
+    puts "Removed .ssh/known_hosts file"
+  end
+
 end
 
 if __FILE__==$0
-  addr =  '10.182.203.39'
+  addr = '10.182.203.39'
   rem = KsRemoteAccess.new(addr)
   puts "Versions for addr #{addr} - #{rem.getRemoteVersionFileNames('/var/tmp')}"
 end
